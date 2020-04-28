@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from allennlp.commands.elmo import ElmoEmbedder
+import tqdm
 
 def merge_two_dicts(x, y):
     z = x.copy()   # start with x's keys and values
@@ -100,7 +101,7 @@ def get_embeddings( seq_dir, emb_path, model_dir, split_char, id_field, cpu,
     ####################### Sort sequences ###############################
     # Sorting sequences according to length is crucial for speed as batches 
     # of proteins with similar size increase throughput.
-    seq_dict = sorted(seq_dict.items(), key=lambda kv: len( seq_dict[kv[0]] ) )
+    seq_dict = sorted(seq_dict.items(), key=lambda kv: len( seq_dict[kv[0]] ) , reverse=True)
     
     if verbose: print('Total number of sequences: {}'.format(len(seq_dict)))
 
@@ -108,8 +109,10 @@ def get_embeddings( seq_dir, emb_path, model_dir, split_char, id_field, cpu,
         
     batch          = list()
     length_counter = 0
+		
+    progress = tqdm.tqdm if verbose else (lambda _: _)
     
-    for index, (identifier, sequence) in enumerate(seq_dict): # for all sequences in the set
+    for index, (identifier, sequence) in progress(enumerate(seq_dict)): # for all sequences in the set
 
         # append sequence to batch and sum amino acids over proteins in batch
         batch.append( (identifier, sequence) )
@@ -163,7 +166,7 @@ def get_embeddings( seq_dir, emb_path, model_dir, split_char, id_field, cpu,
             ################## Reset batch ####################
             batch = list()
             length_counter = 0
-            if verbose: print('.', flush=True, end='')
+            #if verbose: print('.', flush=True, end='')
 
     if verbose: print('\nTotal number of embeddings: {}'.format(len(emb_dict)))
 
@@ -259,7 +262,7 @@ def main():
     verbose   = args.verbose
     
     get_embeddings( seq_dir, emb_path, model_dir, split_char, id_field, 
-                       cpu_flag, max_chars, False, verbose )
+                       cpu_flag, max_chars, per_prot, verbose )
 
 
 if __name__ == '__main__':
